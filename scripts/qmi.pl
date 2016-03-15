@@ -552,11 +552,65 @@ my %msg = (
 	    decode => sub { return "SCell index: " . $_[0]->[0] },
 	},
     },
-    );
+    # Sierra Wireless vendor specific
+    0x5556 => {
+	name => 'SWI_MODEM_STATUS',
+	0x01 => {
+	    name => 'Common Info',
+	    decode => \&tlv_swi_common_info,
+	},
+	0x10 => {
+	    name => 'LTE Info',
+	    decode => \&tlv_swi_lte_info,
+	},
+    },	
+);
 
 
-    
 =begin foo
+
+nemi:/home/bjorn# ~bjorn/privat/prog/git/wwan/scripts/qmi.pl --proxy --device=wwan1 --system=nas 0x5556
+wwan1: will use /dev/cdc-wdm1 for management
+wwan1: qmi-proxy open status=0
+sending to /dev/cdc-wdm1:
+01 0c 00 00 03 04 00 03 00 56 55 00 00 
+=> QMUX Header:
+=>   len:    0x000c
+=>   sender: 0x00
+=>   svc:    0x03
+=>   cid:    0x04
+
+=> QMI Header:
+=>   Flags:  0x00
+=>   TXN:    0x0003
+=>   Cmd:    0x5556
+=>   Size:   0x0000
+reading from /dev/cdc-wdm1
+[Tue Mar 15 01:55:02 2016] read 40 bytes from /dev/cdc-wdm1
+01 27 00 80 03 04 02 03 00 56 55 1b 00 02 04 00 00 00 00 00 10 09 00 03 05 aa 05 fa 4b 02 00 00 01 05 00 2f 05 09 00 00 
+<= QMUX Header:
+<=   len:    0x0027
+<=   sender: 0x80
+<=   svc:    0x03
+<=   cid:    0x04
+
+<= QMI Header:
+<=   Flags:  0x02
+<=   TXN:    0x0003
+<=   Cmd:    0x5556
+<=   Size:   0x001b
+<= [0x01] ( 5) 2f 05 09 00 00   /....
+<= [0x02] ( 4) 00 00 00 00      SUCCESS - QMI_ERR_NONE
+<= [0x10] ( 9) 03 05 aa 05 fa 4b 02 00 00       .....K...
+got match!
+wwan1: saving state to "/etc/network/run/qmistate.wwan1"
+wwan1: released QMI_NAS cid=4 with status=0
+
+
+
+0x01 => file:///usr/local/src/git/swi-slqs/docs/SwiApiReference/structCommInfo.html
+
+
 nasGetLTECphyCa Struct Reference
 Data Fields
 PhyCaAggScellIndType 	sPhyCaAggScellIndType
@@ -1169,11 +1223,24 @@ my %dl_bw_map = (
     5 => '100',
 );
 
+my %bandwidth_map = (
+    0x00 => '1.4 MHz',
+    0x01 => '3 MHz',
+    0x02 => '5 MHz',
+    0x03 => '10 MHz',
+    0x04 => '15 MHz',
+    0x05 => '20 MHz',
+    0x06 => 'Invalid',
+    0xFF => 'Unknown',
+    );
+    
 sub map_dl_bw {
     my $idx = shift;
+    # use the MHz map instead of bitrate codes...
+    return $bandwidth_map{$idx};
     return "LTE_CPHY_CA_BW_NRB_" . $dl_bw_map{$idx};
 }
-    
+
 sub map_scell_state {
     my $state = shift;
     return "" unless defined($state);
@@ -1186,6 +1253,120 @@ sub tlv_phy_ca_agg_cell_info {
     my $datastr = pack("C*", @{shift()});
     my ($pci, $chan, $dlbw, $band, $scell_state) = unpack("vvVvV", $datastr);
     return "pci: $pci, LTE Tx chan: $chan, dl_bw: " . &map_dl_bw($dlbw) . ", band: " . &map_active_band($band) . &map_scell_state($scell_state);
+}
+
+my %modemmode_map = (
+    0x00 => 'POWERING OFF',
+    0x01 => 'FACTORY TEST',
+    0x02 => 'OFFLINE',
+    0x03 => 'OFFLINE_AMPS',
+    0x04 => 'OFFLINE_CDMA',
+    0x05 => 'ONLINE',
+    0x06 => 'LOW POWER MODE',
+    0x07 => 'RESETTING',
+    0x08 => 'NETWORK TEST',
+    0x09 => 'OFFLINE REQUEST',
+    0x0A => 'PSEUDO ONLINE',
+    0x0B => 'RESETTING MODEM',
+    0xFF => 'Unknown',
+    );
+
+my %systemmode_map = (
+    0x00 => 'No service',
+    0x01 => 'AMPS',
+    0x02 => 'CDMA',
+    0x03 => 'GSM',
+    0x04 => 'HDR',
+    0x05 => 'WCDMA',
+    0x06 => 'GPS',
+    0x08 => 'WLAN',
+    0x09 => 'LTE',
+    0xFF => 'Unknown',
+    );
+
+my %imsregstate_map = (	
+    0x00 => 'NO SRV',
+    0x01 => 'IN PROG',
+    0x02 => 'FAILED',
+    0x03 => 'LIMITED',
+    0x04 => 'FULL SRV',
+    0xFF => 'Unknown',
+    );
+
+my %psstate_map = (	
+    0x00 => 'Attached',
+    0x01 => 'Detached',
+    0xFF => 'Unknown',
+    );
+
+#<= [0x01] ( 5) 2f 05 09 00 00   /....
+sub tlv_swi_common_info {
+    my ($temp, $modemmode, $sysmode, $ismreg, $ps) = @{shift()};
+    $temp = "N/A" if ($temp == 0xff);
+    return "temperature: $temp, modemMode: $modemmode_map{$modemmode},  systemMode: $systemmode_map{$sysmode}, imsRegState: $imsregstate_map{$ismreg}, psState: $psstate_map{$ps}";
+}
+	
+my %emmstate_map = (
+    0x00 => 'Deregistered',
+    0x01 => 'Reg Initiated',
+    0x02 => 'Registered',
+    0x03 => 'TAU Initiated',
+    0x04 => 'SR Initiated',
+    0x05 => 'Dereg Initiated',
+    0x06 => 'Invalid',
+    0xFF => 'Unknown',
+    );
+
+my %emmsubstate_map = (
+    0x00 => { # When EMM_state is 0x00:
+        0xFF => 'N/A',
+        0x00 => 'No IMSI',
+        0x01 => 'PLMN Search',
+        0x02 => 'Attach Needed',
+        0x03 => 'No Cell',
+        0x04 => 'Attaching',
+        0x05 => 'Normal Service',
+        0x06 => 'Limited Service',
+        0x07 => 'Waiting for PDN',
+    },
+    0x01 => { # When EMM_state is 0x01:
+        0xFF => 'N/A',
+        0x00 => 'Waiting for NW',
+        0x01 => 'Waiting for ESM',
+    },
+    0x02 => { # When EMM_state is 0x02:
+        0xFF => 'N/A',
+        0x00 => 'Normal Service',
+        0x01 => 'Update Needed',
+        0x02 => 'Attempt Update',
+        0x03 => 'No Cell',
+        0x04 => 'PLMN Search',
+        0x05 => 'Limited Service',
+        0x06 => 'MM Update',
+        0x07 => 'IMSI Detach',
+        0x08 => 'Waiting for ESM',
+    },
+);
+
+my %emmconnstate_map = (
+    0x00 => 'RRC Idle',
+    0x01 => 'Waiting RRC Cfm',
+    0x02 => 'RRC Connected',
+    0x03 => 'RRC Releasing',
+    0xFF => 'Unknown',
+    );
+
+sub tlv_swi_lte_info {
+    my $datastr = pack("C*", @{shift()});
+    my ($band, $bw, $rxchan, $txchan, $emmstate, $emmsubstate, $emmconnstate) = unpack("CCvvCCC", $datastr);
+    if ($band == 0xff) {
+	$band = 'Invalid';
+    } else {
+	$band = "LTE B$band";
+    }
+    $rxchan = 'N/A' if ($rxchan == 0xffff);
+    $txchan = 'N/A' if ($txchan == 0xffff);
+    return "band: $band, bandwidth: $bandwidth_map{$bw}, RXChan: $rxchan, TXChan: $txchan, emmState: $emmstate_map{$emmstate}, emmSubState: $emmsubstate_map{$emmstate}->{$emmsubstate}, emmConnState: $emmconnstate_map{$emmconnstate}";
 }
 
 sub tlv {
@@ -1336,7 +1517,12 @@ i.e a stream of TLVs starting with 0x followed by the raw contents, all encoded 
 
 
 Command aliases and expected arguments (no encoding):
+
+ DMS:
    impref <fwversion> <config> [carrier]  - carrier defaults to 'GENERIC', system is forced to DMS
+
+ NAS:
+   gstatus - Sierra Wireless specific, system is forced to NAS
 
 
 EOH
@@ -2460,6 +2646,7 @@ my $cmd = shift;
 # force system for well known alias commands
 my %aliases = (
     'impref' => QMI_DMS,
+    'gstatus' => QMI_NAS,
     );
 $system = $aliases{$cmd} if exists($aliases{$cmd});
     
@@ -2523,6 +2710,8 @@ if ($system == QMI_WDS) {
 	&nas_initiate_network_register;
     } elsif ($cmd eq 'scan') {
 	&nas_perform_network_scan;
+    } elsif ($cmd eq 'gstatus') {
+	pretty_print_qmi(&send_and_recv(&mk_nas(0x5556)));
     }
 } elsif ($system == QMI_WMS) {
     unless ($cmd) {
