@@ -1291,6 +1291,9 @@ TLV depend on command and is on the format
 i.e a stream of TLVs starting with 0x followed by the raw contents, all encoded as hex bytes
 
 
+Command aliases and expected arguments (no encoding):
+   impref <fwversion> <config> [carrier]  - carrier defaults to 'GENERIC', system is forced to DMS
+
 
 EOH
     ;
@@ -2025,6 +2028,30 @@ sub dms_verify_pin {
     return $pinok{1};  # we only really care about PIN1
 }
 
+# 0x0048 0x01 02 00 30 30 32 2e 30 30 38 5f 30 30 30 00 00 00 00 00 13 30 32 2e 31 31 2e 30 33 2e 30 30 5f 47 45 4e 45 52 49 43 01 30 30 32 2e 30 30 38 5f 30 30 30 00 00 00 00 00 13 30 32 2e 31 31 2e 30 33 2e 30 30 5f 47 45 4e 45 52 49 43 0x10 04
+
+
+sub mk_img_str {
+    my ($fwver, $cfg, $carrier) = @_;
+    my $combver = $fwver .'_'. $carrier;
+    return "$cfg" . "\0" x (16 - length($cfg)) . pack("C", length($combver)) . $combver;
+}
+
+sub dms_set_fw_pref {
+    my ($fwver, $cfg, $carrier) = @_;
+    my $slot = 0xff;  # FIXME: allow override?
+    my $req = &mk_dms(0x0048, # QMI_WDS_MODIFY_PROFILE_SETTINGS
+		      { 0x01 =>  pack("CC", 2, 0) . # arraylen = 2, type = 0 (modem)
+			    &mk_img_str($fwver, $cfg, $carrier) .
+			    pack("C", 1) .          # type = 1 (pri)
+			    &mk_img_str($fwver, $cfg, $carrier),
+		        0x10 => pack("C", $slot)});
+    $debug = 1;
+    my $ret = &send_and_recv($req);
+    $debug = 0;
+    return &verify_status($ret);
+} 
+    
 # alternate PIN verification for newer firmwares
 sub uim_verify_pin {
     my $pinnumber = shift;
@@ -2386,6 +2413,12 @@ $SIG{INT} = \&release_cids;
 # get the command
 my $cmd = shift;
 
+# force system for well known alias commands
+my %aliases = (
+    'impref' => QMI_DMS,
+    );
+$system = $aliases{$cmd} if exists($aliases{$cmd});
+    
 # let network scripts override everything
 if (exists $ENV{'PHASE'}) {
     $cmd = $ENV{'PHASE'};
@@ -2429,6 +2462,13 @@ if ($system == QMI_WDS) {
 					0x20 => pack("C", 1), # RF Band Information
 			       }));
 	$monitor = 1;
+    }
+} elsif ($system == QMI_DMS) {
+    if ($cmd eq 'impref') {
+	my ($fwver, $cfg, $carrier) = @ARGV;
+	$carrier ||= 'GENERIC';
+	&usage unless ($fwver =~ /^\d{2}\.\d{2}\.\d{2}\.\d{2}$/ && $cfg =~ /^\d{3}\.\d{3}_\d{3}$/);
+	&dms_set_fw_pref($fwver, $cfg, $carrier);
     }
 } elsif ($system == QMI_NAS) {
     if (!$cmd) {
