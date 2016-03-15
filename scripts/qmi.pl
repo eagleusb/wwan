@@ -533,7 +533,176 @@ my %msg = (
 	    decode => \&tlv_rf_band_info,
 	},
     },
+    0x00ac => {
+	name => 'GET_LTE_CPHY_CA_INFO',
+	0x11 => {
+	    name => 'DL Bandwidth',
+	    decode => sub { "dl_bw: " . &map_dl_bw(unpack("V", pack("C*", @{$_[0]}))) },
+	},
+	0x12 => {
+	    name => 'Phy CA Agg SCell Info',
+	    decode => sub { "SCell: ". &tlv_phy_ca_agg_cell_info },
+	},
+	0x13 => {
+	    name => 'Phy CA Agg PCell Info',
+	    decode => sub { "PCell: ". &tlv_phy_ca_agg_cell_info },
+	},
+	0x14 => {
+	    name => 'SCell index',
+	    decode => sub { return "SCell index: " . $_[0]->[0] },
+	},
+    },
     );
+
+
+    
+=begin foo
+nasGetLTECphyCa Struct Reference
+Data Fields
+PhyCaAggScellIndType 	sPhyCaAggScellIndType
+ 
+PhyCaAggScellDlBw 	sPhyCaAggScellDlBw
+ 
+PhyCaAggScellInfo 	sPhyCaAggScellInfo
+ 
+PhyCaAggPcellInfo 	sPhyCaAggPcellInfo
+ 
+PhyCaAggScellIndex 	sPhyCaAggScellIndex
+
+
+
+PhyCaAggScellIndType Struct Reference
+Data Fields
+int 	pci
+ 
+int 	freq
+ 
+NAS_LTE_CPHY_SCELL_STATE 	scell_state
+ 
+BYTE 	TlvPresent
+ 
+Detailed Description
+
+This structure contains the parameters for Physical Carrier aggregation of Scell Indeicator Type.
+
+Parameters
+    pci	
+
+        Physical cell ID of the SCell Range.
+        Range for ID values: 0 to 503.
+
+    freq	
+
+        Frequency of the absolute cell Range.
+        Range for ID values: 0 to 65535.
+
+    scell_state	
+
+        Scell state Values.
+        See NAS_LTE_CPHY_SCELL_STATE for more information.
+
+    TlvPresent	
+
+        Tlv Present.
+
+Data Fields
+NAS_LTE_CPHY_CA_BW_NRB 	dl_bw_value
+ 
+BYTE 	TlvPresent
+ 
+Detailed Description
+
+This structure contains the parameters for Physical Carrier aggregation Downlink Bandwidth of Scell.
+
+Parameters
+    dl_bw_value	
+
+        Downlink Bandwidth Values.
+        See NAS_LTE_CPHY_CA_BW_NRB for more information.
+
+
+
+PhyCaAggScellIndex Struct Reference
+Data Fields
+BYTE 	scell_idx
+ 
+BYTE 	TlvPresent
+ 
+Detailed Description
+
+This structure contains the parameters for Physical Carrier aggregation of Scell Index.
+
+Parameters
+    scell_idx	
+
+        Physical cell ID of the SCell Range.
+        Range for ID values: 0 to 503.
+
+    TlvPresent	
+
+        Tlv Present.
+
+
+Sample result (without CA):
+
+[Tue Mar 15 09:32:26 2016] read 61 bytes from /dev/cdc-wdm0
+01 3c 00 80 03 04 02 03 00 ac 00 30 00 02 04 00 00 00 00 00 11 04 00 03 00 00 00 12 0e 00 dd 00 00 19 03 00 00 00 91 00 00 00 00 00 13 0a 00 2b 01 aa 05 05 00 00 00 7a 00 14 01 00 01 
+<= QMUX Header:
+<=   len:    0x003c
+<=   sender: 0x80
+<=   svc:    0x03
+<=   cid:    0x04
+
+<= QMI Header:
+<=   Flags:  0x02
+<=   TXN:    0x0003
+<=   Cmd:    0x00ac
+<=   Size:   0x0030
+<= [0x02] ( 4) 00 00 00 00      SUCCESS - QMI_ERR_NONE
+<= [0x11] ( 4) 03 00 00 00      ....
+<= [0x12] (14) dd 00 00 19 03 00 00 00 91 00 00 00 00 00        ..............
+<= [0x13] (10) 2b 01 aa 05 05 00 00 00 7a 00    +.......z.
+<= [0x14] ( 1) 01       .
+got match!
+
+
+Sammenlign med:
+
+bjorn@nemi:~/privat/prog/git/wwan/scripts$ mmcli -m 4 --command='AT!GSTATUS?'
+response: '!GSTATUS: 
+Current Time:  3355             Temperature: 53
+Reset Counter: 2                Mode:        ONLINE         
+System mode:   LTE              PS state:    Attached     
+LTE band:      B3               LTE bw:      20 MHz  
+LTE Rx chan:   1450             LTE Tx chan: 19450
+LTE CA state:  NOT ASSIGNED
+EMM state:     Registered       Normal Service 
+RRC state:     RRC Connected  
+IMS reg state: No Srv  
+
+PCC RxM RSSI:  -32              RSRP (dBm):  -58
+PCC RxD RSSI:  -46              RSRP (dBm):  -72
+Tx Power:      -44              TAC:         78BF (30911)
+RSRQ (dB):     -6.3             Cell ID:     0105880A (17139722)
+SINR (dB):     26.0'
+
+
+LTE Rx chan  1450 = 0x05aa
+LTE Tx chan 19450 = 0x4bfa
+pci           299 = 0x012b
+LTE band B3:  122 = 0x007a 
+=> 0x13 = le16(pci) le16(LTE Tx chan) le32(dl_bw_value) le16(LTE band)
+
+Sample result (with CA):
+
+
+??
+
+
+dl_bw_value is always present(?).  
+
+=end foo
+=cut
 
 my %registration_map = (
     0 => 'NOT REGISTERED',
@@ -671,7 +840,7 @@ sub map_active_band {
 	$x -= 23 if ($band > 142); # then we go back to 18 after 40...
 	$x += 2 if ($band > 146); # and have a whole for band  22 and 23
 	$x += 15 if ($band > 148); # and up to 41 again after 25..
-	return "E-UTRA Operating Band $x";
+	return "E-UTRA Band $x";
     }
     if (($band > 199) && ($band <= 205)) {
 	my $x = chr(ord('A') + $band - 200);
@@ -947,6 +1116,34 @@ sub tlv_lte_neigh_wcdma {
     return $ret;
 }
 
+my %dl_bw_map = (
+    0 => '6',	
+    1 => '15',
+    2 => '25',
+    3 => '50',
+    4 => '75',
+    5 => '100',
+);
+
+sub map_dl_bw {
+    my $idx = shift;
+    return "LTE_CPHY_CA_BW_NRB_" . $dl_bw_map{$idx};
+}
+    
+sub map_scell_state {
+    my $state = shift;
+    return "" unless defined($state);
+    return ", state: DECONFIGURED" if ($state == 0);
+    return ", state: DEACTIVATED" if ($state == 1);
+    return ", state: ACTIVATED" if ($state == 2);
+}
+
+sub tlv_phy_ca_agg_cell_info {
+    my $datastr = pack("C*", @{shift()});
+    my ($pci, $chan, $dlbw, $band, $scell_state) = unpack("vvVvV", $datastr);
+    return "pci: $pci, LTE Tx chan: $chan, dl_bw: " . &map_dl_bw($dlbw) . ", band: " . &map_active_band($band) . &map_scell_state($scell_state);
+}
+
 sub tlv {
     my ($msgid, $tlv, $data) = @_;
     
@@ -955,6 +1152,7 @@ sub tlv {
     }
     return ''; # => default handling
 }
+
 
 }
 1; # eof QMI::NAS;
@@ -1091,6 +1289,8 @@ Command is either a hex command number or an alias
 TLV depend on command and is on the format
   0x00 01 02 0x10 00 00 00 00
 i.e a stream of TLVs starting with 0x followed by the raw contents, all encoded as hex bytes
+
+
 
 EOH
     ;
