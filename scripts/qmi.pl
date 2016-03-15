@@ -695,8 +695,52 @@ LTE band B3:  122 = 0x007a
 
 Sample result (with CA):
 
+[Tue Mar 15 12:18:49 2016] read 61 bytes from /dev/cdc-wdm0
+01 3c 00 80 03 04 02 02 00 ac 00 30 00 02 04 00 00 00 00 00 11 04 00 05 00 00 00 12 0e 00 65 00 ea 0b 05 00 00 00 7e 00 02 00 00 00 13 0a 00 2b 01 aa 05 05 00 00 00 7a 00 14 01 00 01 
+<= QMUX Header:
+<=   len:    0x003c
+<=   sender: 0x80
+<=   svc:    0x03
+<=   cid:    0x04
 
-??
+<= QMI Header:
+<=   Flags:  0x02
+<=   TXN:    0x0002
+<=   Cmd:    0x00ac
+<=   Size:   0x0030
+<= [0x02] ( 4) 00 00 00 00      SUCCESS - QMI_ERR_NONE
+<= [0x11] ( 4) 05 00 00 00      dl_bw: LTE_CPHY_CA_BW_NRB_100
+<= [0x12] (14) 65 00 ea 0b 05 00 00 00 7e 00 02 00 00 00        SCell: pci: 101, LTE Tx chan: 3050, dl_bw: LTE_CPHY_CA_BW_NRB_100, band: E-UTRA Band 7, state: ACTIVATED
+<= [0x13] (10) 2b 01 aa 05 05 00 00 00 7a 00    PCell: pci: 299, LTE Tx chan: 1450, dl_bw: LTE_CPHY_CA_BW_NRB_100, band: E-UTRA Band 3
+<= [0x14] ( 1) 01       SCell index: 1
+got match!
+wwan0: saving state to "/etc/network/run/qmistate.wwan0"
+
+
+and after a while:
+
+[Tue Mar 15 12:19:42 2016] read 61 bytes from /dev/cdc-wdm0
+01 3c 00 80 03 04 02 02 00 ac 00 30 00 02 04 00 00 00 00 00 11 04 00 05 00 00 00 12 0e 00 65 00 ea 0b 05 00 00 00 7e 00 01 00 00 00 13 0a 00 2b 01 aa 05 05 00 00 00 7a 00 14 01 00 01 
+<= QMUX Header:
+<=   len:    0x003c
+<=   sender: 0x80
+<=   svc:    0x03
+<=   cid:    0x04
+
+<= QMI Header:
+<=   Flags:  0x02
+<=   TXN:    0x0002
+<=   Cmd:    0x00ac
+<=   Size:   0x0030
+<= [0x02] ( 4) 00 00 00 00      SUCCESS - QMI_ERR_NONE
+<= [0x11] ( 4) 05 00 00 00      dl_bw: LTE_CPHY_CA_BW_NRB_100
+<= [0x12] (14) 65 00 ea 0b 05 00 00 00 7e 00 01 00 00 00        SCell: pci: 101, LTE Tx chan: 3050, dl_bw: LTE_CPHY_CA_BW_NRB_100, band: E-UTRA Band 7, state: DEACTIVATED
+<= [0x13] (10) 2b 01 aa 05 05 00 00 00 7a 00    PCell: pci: 299, LTE Tx chan: 1450, dl_bw: LTE_CPHY_CA_BW_NRB_100, band: E-UTRA Band 3
+<= [0x14] ( 1) 01       SCell index: 1
+got match!
+wwan0: saving state to "/etc/network/run/qmistate.wwan0"
+wwan0: released QMI_NAS cid=4 with status=0
+
 
 
 dl_bw_value is always present(?).  
