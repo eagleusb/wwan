@@ -11,8 +11,8 @@ use Getopt::Long;
 # fixed prod
 my $prod = "9X30";
 
-# fixed version string;
-my $ver = "9999999_9904609_SWI9X30C_00.00.00.00_00_bjorn_001.000_000";
+# fixed version string - must this match the running image?
+my $ver = "9999999_9904609_SWI9X30C_02.08.02.00_00_Bjorn_001.000_000";
     
 ## test with a legal value first! my $usbcomp = 0x0000050f; # (diag,adb,nmea,modem,rmnet0,rmnet1) 
 my $usbcomp = 0x0000010d; # (diag,nmea,modem,rmnet0) 
@@ -69,7 +69,7 @@ sub crc32 {
 
 sub mkfilehdr {
     my $imgsz = shift;
-    return pack("CCnNNa[244]",1, 3, 0, 400, $imgsz, "FULL");
+    return pack("CCnNNa[244]",1, 2, 0, 400, $imgsz, "FULL");  # the meaning of 'code' is uncertain.  OEM file has 3, others have 2.
 }
 
 sub mkcwehdr {
@@ -106,7 +106,8 @@ sub mknvup {
 
 my $image = &mknvup();
 my $cwe = &mkcwehdr('NVUP', $ver, 0x00000001, 0x50617273, $image);
-$cwe = &mkcwehdr('FILE', '/swir/nvdelta/NVUP_bjorn.020', 0x01000000, 0x00000001, $cwe);
+## funker ikke $cwe = &mkcwehdr('FILE', '/swir/nvdelta/NVUP_bjorn.020', 0x01000000, 0x00000001, $cwe);
+$cwe = &mkcwehdr('FILE', '/nvup/NVUP_BJORN.020', 0x01000000, 0x00000001, $cwe);
 $cwe = &mkcwehdr('FILE', $ver, 0x00000000, 0x00000001, $cwe);
 $cwe = &mkcwehdr('SPKG', $ver, 0x00000000, 0x00000001, $cwe);
 print $cwe;
