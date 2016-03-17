@@ -130,12 +130,12 @@ sub parse_nvup {
 		# observed pattern:
 		#  switch (flag) {
 		#    00: file
-		#    02: weird entry
+		#    02: weird entry - only a single 00 byte.  padding?
 		#    08: named variable
 		if ($flag == 2) {
-		    $name = join(' ', map { sprintf "%02x" } unpack("C*", $name));
+		    $name = join(' ', map { sprintf "%02x", $_ } unpack("C*", $name));
 		}
-		printf ", <%02x> $name =>", $flag;
+		printf ", <%02x> $name => ", $flag;
 	    } elsif ($d == 2) { # value
 		# observed pattern:
 		#  data sometimes(?) contains a CWE header
@@ -143,12 +143,10 @@ sub parse_nvup {
 		$data = $cwelen ? substr($data, -$cwelen) : '';
 	    } else { # nvitem
 		# the NVITEM data is everything
-		printf " NVITEM 0x%04x =>", $d;
+		printf " NVITEM 0x%04x => ", $d;
 	    }
-	for (unpack("C*", $data)) {
-		printf " %02x", $_;
-	}
-	$nvup = substr($nvup, 6 + $tlen);
+	    print join(':', map { sprintf "%02x", $_ } unpack("C*", $data));
+	    $nvup = substr($nvup, 6 + $tlen);
 	}
 	print "\n";
     }
