@@ -28,6 +28,7 @@ sub crc32 {
     return $crc ^ 0xffffffff;
 }
 
+# CWE use big endian integers!
 sub parse_cwehdr {
     my $data = shift; # 400 bytes
     my $pfx = shift;
@@ -50,12 +51,80 @@ sub parse_cwehdr {
     return ($imgsz, $type);
 }
 
+# NVUPs use little endian integers! Confusing? Yes
 sub parse_nvup {
     my $buf = shift;
     my $len = shift;
     my $pfx = shift || "";
 
-    print "${pfx}dummy NVUP parser\n";
+# NVUP guessing:
+# header data samples:
+#   01 00 25 00 01 00 01 00 00 00 
+#   01 00 8f 00 fe 00 01 00 00 00
+#   01 00 03 00 05 00 01 00 00 00
+
+# Confirmed:  $count matches the number of items found
+    
+    # NVUP header:
+    my ($ver, $count, $foo, $bar) = unpack("vvvV", $buf);
+    printf "${pfx}NVUPHDR: ver=$ver, count=$count, foo=%04x, bar=%08x\n", $foo, $bar;
+    $len -= 10;
+    $buf = substr($buf, 10, $len);
+
+
+# element sample (start):
+#             87 02 00 00 02 00 01  00 01 00 19 00 00 00 00  |................|
+#00002de0  2f 6e 76 75 70 2f 4e 56  55 50 5f 44 69 73 61 62  |/nvup/NVUP_Disab|
+#00002df0  6c 65 42 35 2e 30 32 32  02 00 5a 02 00 00 00 00  |leB5.022..Z.....|
+#00002e00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+#00002e10  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+#00002e20  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+#00002e30  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+#00002e40  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+#00002e50  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+# len=00000287 (le32)
+# b=02
+# c=0001 (note! ref above)
+# d=0001
+# namelen=0019
+# type=00000000
+# name=/nvup/NVUP_DisableB5.022
+#  data: 02 00 5a 02 00 00 00 00 ...
+#      k=2 (le16, fixed?), datalen=0000025a (le32)
+
+
+
+    # pattern observed in first parse attempt:
+    #  'name' is only valid if d==0001.  d might possibly indicate an NV entry number else?
+
+    my $number = 1;
+    # parse each NVUP element
+    while ($len > 0) {
+	my ($l, $b, $c, $d, $namelen, $flag) = unpack("VvvvVC", $buf);
+	my $name = substr($buf, 15, $namelen - 1);
+	my ($type, $datalen, @data);
+	if ($d != 1) {
+	    warn "XXX: unexpected NVITEM format!\n" if ($l > 14 + $namelen);
+	    # the NVITEM data is everything
+	    @data = unpack("C*", substr($buf, 14 + $namelen));
+	    $datalen = $namelen;
+	    $name = "NVITEM";
+	} else {
+	    ($type, $datalen, @data) = $l > 14 + $namelen ? unpack("vVC*", substr($buf, 14 + $namelen)) : (0, 0, '');
+	}
+	
+	printf "${pfx}  #%-03d %4d bytes: b=%04x, c=%04x, d=%04x, flag=%02x '%s' => [%3d]", $number, $l, $b, $c, $d, $flag, $name, $datalen;
+	for (my $i = 0; $i < $datalen && $i < 20; $i++) {
+	    printf " %02x", $data[$i];
+	}
+	print "\n";
+	
+	# move to next element
+	$number++;
+	$len -= $l;
+	$buf = substr($buf, $l) if ($len > 0);
+    }
 }
 	
 # recursively parse an CWE file
@@ -114,8 +183,10 @@ close(F);
 exit 0;
 
 # NVUP guessing:
-# header data:
+# header data samples:
 #   01 00 25 00 01 00 01 00 00 00 
+#   01 00 8f 00 fe 00 01 00 00 00
+#   01 00 03 00 05 00 01 00 00 00
 
 # len=20
 # b=00000001
