@@ -8,6 +8,9 @@ use warnings;
 use Archive::Zip;
 use Getopt::Long;
 
+# data dump limit
+my $datalimit = 8192;
+
 sub usage {
     warn "Usage: $0 <file>\n";
     exit 0;
@@ -67,7 +70,7 @@ sub parse_nvup {
     
     # NVUP header:
     my ($ver, $count, $foo, $bar) = unpack("vvvV", $buf);
-    printf "${pfx}NVUPHDR: ver=$ver, count=$count, foo=%04x, bar=%08x\n", $foo, $bar;
+    printf "${pfx}NVUP: $len bytes, ver=$ver, count=$count, foo=%04x, bar=%08x\n", $foo, $bar;
     $len -= 10;
     $buf = substr($buf, 10, $len);
 
@@ -84,46 +87,70 @@ sub parse_nvup {
 #00002e50  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
 
 # len=00000287 (le32)
-# b=02
+# b=0002
 # c=0001 (note! ref above)
 # d=0001
-# namelen=0019
-# type=00000000
+# namelen=00000019
+# flag=00
 # name=/nvup/NVUP_DisableB5.022
 #  data: 02 00 5a 02 00 00 00 00 ...
 #      k=2 (le16, fixed?), datalen=0000025a (le32)
 
-
-
-    # pattern observed in first parse attempt:
-    #  'name' is only valid if d==0001.  d might possibly indicate an NV entry number else?
-
+ 
     my $number = 1;
     # parse each NVUP element
     while ($len > 0) {
-	my ($l, $b, $c, $d, $namelen, $flag) = unpack("VvvvVC", $buf);
-	my $name = substr($buf, 15, $namelen - 1);
-	my ($type, $datalen, @data);
-	if ($d != 1) {
-	    warn "XXX: unexpected NVITEM format!\n" if ($l > 14 + $namelen);
-	    # the NVITEM data is everything
-	    @data = unpack("C*", substr($buf, 14 + $namelen));
-	    $datalen = $namelen;
-	    $name = "NVITEM";
-	} else {
-	    ($type, $datalen, @data) = $l > 14 + $namelen ? unpack("vVC*", substr($buf, 14 + $namelen)) : (0, 0, '');
-	}
-	
-	printf "${pfx}  #%-03d %4d bytes: b=%04x, c=%04x, d=%04x, flag=%02x '%s' => [%3d]", $number, $l, $b, $c, $d, $flag, $name, $datalen;
-	for (my $i = 0; $i < $datalen && $i < 20; $i++) {
-	    printf " %02x", $data[$i];
-	}
-	print "\n";
-	
-	# move to next element
+	my ($l, $b, $c) = unpack("Vvv", $buf);
+	printf "${pfx}  #%-03d %4d bytes: b=%04x, c=%04x", $number, $l, $b, $c;
+
+	# set up for next element
 	$number++;
 	$len -= $l;
+	
+	# parse this element
+	my $nvup = substr($buf, 8, $l - 8);
+
+	# move buf ptr
 	$buf = substr($buf, $l) if ($len > 0);
+	
+        # observed pattern:
+	#  'name' is only valid if d==0001.  d might possibly indicate an NV entry number else?
+	#  maybe we have a sequence of (d, len, val) entries for name, val?  I.e TLVs...
+	# types:
+	#    0001: name
+	#    0002: value
+	#    xxxx: nvitem
+	while ($nvup) {
+	    my ($d, $tlen) = unpack("vV", $nvup);
+	    my $data = substr($nvup, 6, $tlen);
+	    if ($d == 1) { # name of file or variable
+		my ($flag, $name) = unpack("Ca*", $data);
+		$data = ''; # consumed
+
+		# observed pattern:
+		#  switch (flag) {
+		#    00: file
+		#    02: weird entry
+		#    08: named variable
+		if ($flag == 2) {
+		    $name = join(' ', map { sprintf "%02x" } unpack("C*", $name));
+		}
+		printf ", <%02x> $name =>", $flag;
+	    } elsif ($d == 2) { # value
+		# observed pattern:
+		#  data sometimes(?) contains a CWE header
+		my $cwelen = &parse_cwe($data, $tlen, "${pfx}    ");
+		$data = $cwelen ? substr($data, -$cwelen) : '';
+	    } else { # nvitem
+		# the NVITEM data is everything
+		printf " NVITEM 0x%04x =>", $d;
+	    }
+	for (unpack("C*", $data)) {
+		printf " %02x", $_;
+	}
+	$nvup = substr($nvup, 6 + $tlen);
+	}
+	print "\n";
     }
 }
 	
@@ -155,11 +182,12 @@ sub parse_cwe {
 
 	# $buf is pointing to the innermost data of the CWE - parse it according to type
 	if ($innerlen > 0) {
-	    printf "${pfx}  $type: $imgsz bytes\n" if 1; # redundant info
 
 	    # parse known formats
 	    if ($type eq 'NVUP') {
 		&parse_nvup($buf, $imgsz, "$pfx  ");
+	    } else {
+		printf "${pfx}  $type: $imgsz bytes\n" if 1; # redundant info
 	    }
 	}
 
