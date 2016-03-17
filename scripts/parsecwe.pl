@@ -35,18 +35,29 @@ sub parse_cwehdr {
     my ($crc, $rev, $val, $type, $prod, $imgsz, $imgcrc, $version, $date, $compat, undef, $xxx) = unpack("NNA4A4A4NNa84a8Na16N", substr($data, 256));
 
     # assume a valid CWE header if the checksum of the first 256 bytes matches
-    return (0, '') unless ($crc == &crc32(substr($data, 0, 256)));
+    return (0) unless ($crc == &crc32(substr($data, 0, 256)));
 
     # make $val a 4byte string
     $val = "NOPE" if (unpack("N", $val) == 0xffffffff);
 
     &parse_flehdr(substr($data, 0, 256), $pfx);
     printf "${pfx}CWEHDR: $type: crc=0x%08x, rev=$rev, val=$val, prod=$prod, imgsz=$imgsz, imgcrc=0x%08x, date=$date, compat=0x%08x, xxx=0x%08x\n", $crc, $imgcrc, $compat, $xxx;
-    print "${pfx}  (version string: '$version')\n";
+
+    # verify image crc
+    my $crcok = &crc32(substr($data, 400, $imgsz)) == $imgcrc;
+    printf "${pfx}  imgcrc %s, version string: '$version'\n", $crcok ? "OK" : "FAIL";
 
     return ($imgsz, $type);
 }
 
+sub parse_nvup {
+    my $buf = shift;
+    my $len = shift;
+    my $pfx = shift || "";
+
+    print "${pfx}dummy NVUP parser\n";
+}
+	
 # recursively parse an CWE file
 sub parse_cwe {
     my $buf = shift;
@@ -55,7 +66,7 @@ sub parse_cwe {
  
     do {
 	# get the size and type of any subimage
-	my ($imgsz, $type) = &parse_cwehdr($buf, $pfx) if ($len >= 400);
+	my ($imgsz, $type, $crc) = &parse_cwehdr($buf, $pfx) if ($len >= 400);
 
 	# we found the innermost data - return length to let parent know
 	return $len unless $imgsz;
@@ -75,7 +86,12 @@ sub parse_cwe {
 
 	# $buf is pointing to the innermost data of the CWE - parse it according to type
 	if ($innerlen > 0) {
-	    printf "${pfx}  found inner '$type' of $imgsz bytes\n";
+	    printf "${pfx}  $type: $imgsz bytes\n" if 1; # redundant info
+
+	    # parse known formats
+	    if ($type eq 'NVUP') {
+		&parse_nvup($buf, $imgsz, "$pfx  ");
+	    }
 	}
 
 	# strip the now parsed imgsz
