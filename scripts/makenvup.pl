@@ -11,11 +11,13 @@ use Getopt::Long;
 # fixed prod
 my $prod = "9X30";
 
-# fixed version string - must this match the running image?
-my $ver = "9999999_9904609_SWI9X30C_02.08.02.00_00_Bjorn_001.000_000";
-    
-## test with a legal value first! my $usbcomp = 0x0000050f; # (diag,adb,nmea,modem,rmnet0,rmnet1) 
-my $usbcomp = 0x0000010d; # (diag,nmea,modem,rmnet0) 
+# fixed version string - must this match the running image? YES: experiments says so
+my $imgver = "02.08.02.00";
+my $ver = "9999999_9904609_SWI${prod}C_${imgver}_00_Bjorn_001.001_000";
+
+## test with a legal value first! 
+##my $usbcomp = 0x0000050d; # (diag,nmea,modem,rmnet0) 
+my $usbcomp = 0x0000050f; # (diag,adb,nmea,modem,rmnet0,rmnet1)
 
 #  supported values are:
 #
