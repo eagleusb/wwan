@@ -1519,8 +1519,10 @@ i.e a stream of TLVs starting with 0x followed by the raw contents, all encoded 
 Command aliases and expected arguments (no encoding):
 
  DMS:
-   impref <fwversion> <config> [carrier]  - carrier defaults to 'GENERIC', system is forced to DMS
-
+   impref <fwversion> <config> [carrier] [slot]  - carrier defaults to 'GENERIC', system is forced to DMS
+    example:
+      $0 --device=wwan0 impref  02.08.02.00 002.007_000 GENERIC 1
+   
  NAS:
    gstatus - Sierra Wireless specific, system is forced to NAS
 
@@ -2268,8 +2270,10 @@ sub mk_img_str {
 }
 
 sub dms_set_fw_pref {
-    my ($fwver, $cfg, $carrier) = @_;
-    my $slot = 0xff;  # FIXME: allow override?
+    my ($fwver, $cfg, $carrier, $slot) = @_;
+    if (!$slot || $slot !~ /^[1-4]$/) {
+	$slot = 0xff;
+    }
     my $req = &mk_dms(0x0048, # QMI_WDS_MODIFY_PROFILE_SETTINGS
 		      { 0x01 =>  pack("CC", 2, 0) . # arraylen = 2, type = 0 (modem)
 			    &mk_img_str($fwver, $cfg, $carrier) .
@@ -2696,10 +2700,10 @@ if ($system == QMI_WDS) {
     }
 } elsif ($system == QMI_DMS) {
     if ($cmd eq 'impref') {
-	my ($fwver, $cfg, $carrier) = @ARGV;
+	my ($fwver, $cfg, $carrier, $slot) = @ARGV;
 	$carrier ||= 'GENERIC';
 	&usage unless ($fwver =~ /^\d{2}\.\d{2}\.\d{2}\.\d{2}$/ && $cfg =~ /^\d{3}\.\d{3}_\d{3}$/);
-	&dms_set_fw_pref($fwver, $cfg, $carrier);
+	&dms_set_fw_pref($fwver, $cfg, $carrier, $slot);
     }
 } elsif ($system == QMI_NAS) {
     if (!$cmd) {
