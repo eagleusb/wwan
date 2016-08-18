@@ -10,15 +10,17 @@ use IPC::Shareable;
 use Fcntl ':mode';
 use File::Basename;
 use Time::HiRes qw (sleep);
+use Data::Dumper;
 
 my $maxctrl = 4096; # default, will be overridden by ioctl if supported
 my $mgmt = "/dev/cdc-wdm0";
 my $reset;
 my $usbreset;
+my $qdl;
 my $debug;
 my $verbose = 1;
 my $usbcomp;
- 
+
 # a few global variables
 my $msgs;
 my $dmscid;
@@ -32,6 +34,7 @@ GetOptions(
     'device=s' => \$mgmt,
     'reset!' => \$reset,
     'usbreset!' => \$usbreset,
+    'qdl!' => \$qdl,
     'debug!' => \$debug,
     'verbose!' => \$verbose,
     'help|h|?' => \&usage,
@@ -551,6 +554,13 @@ unless ($lastqmi = &do_qmi(0x0022, &mk_qmi(0, 0, 0x0022, { 0x01 => pack("C", 2),
 $dmscid = $lastqmi->{'tlvs'}{0x01}[1]; # save the DMS CID
 print "Got QMI DMS client ID '$dmscid'\n" if $verbose;
 
+
+# Bootloader mode trumps the rest of this script....
+if ($qdl) {
+    $lastqmi = &do_qmi(0x003e, &mk_qmi(2, $dmscid, 0x003e, {}));
+    &quit;
+}
+
 #QMI_DMS_SWI_SETUSBCOMP (or whatever)
 # get USB comp = 0x555B
 # set USB comp = 0x555C
@@ -689,7 +699,7 @@ sub quit {
     close(F);
 
     # dump all messages received
-    print Dumper($msgs) if $debug;
+##    print Dumper($msgs) if $debug;
 
     # attempt to reset USB device
     &usbreset if ($usbreset);
@@ -706,6 +716,7 @@ Where [options] are
   --usbcomp=<num>	change USB composition setting
   --reset		issue a QMI reset request
   --usbreset		USB device reset - might be necessary for MC74xx
+  --qdl                 reboot modem into bootloader QDL mode
   --debug		enable verbose debug output
   --help		this help text
 
