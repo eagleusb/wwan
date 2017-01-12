@@ -11,6 +11,28 @@ use Getopt::Long;
 # data dump limit
 my $datalimit = 8192;
 
+# optionally look up nv item numbers to name based on XML input from
+#  wget https://raw.githubusercontent.com/openpst/qcdm/HEAD/resources/xml/nv_items.xml
+my %nv = ();
+eval {
+    require XML::Simple;
+    require File::Basename;
+
+    my $dir = File::Basename::dirname($0);
+    my $file = "$dir/nv_items.xml";
+    die "cannot open $file: $!\n" unless open(F, $file);
+    local $/ = undef;
+    my $xml = <F>;
+    close(F);
+    my $x = XML::Simple::XMLin($xml);
+    %nv = map { $_ => $x->{'NvItem'}->{$_}->{'content'} } keys %{$x->{'NvItem'}};
+} || warn $@;
+
+sub nvitem2name {
+    my $nvitem = shift;
+    return $nv{$nvitem} || '';
+}
+
 sub usage {
     warn "Usage: $0 <file>\n";
     exit 0;
@@ -112,7 +134,7 @@ sub parse_nvup {
 
 	# move buf ptr
 	$buf = substr($buf, $l) if ($len > 0);
-	
+
         # observed pattern:
 	#  'name' is only valid if d==0001.  d might possibly indicate an NV entry number else?
 	#  maybe we have a sequence of (d, len, val) entries for name, val?  I.e TLVs...
@@ -130,11 +152,12 @@ sub parse_nvup {
 		# observed pattern:
 		#  switch (flag) {
 		#    00: file
-		#    02: weird entry - only a single 00 byte.  padding?
+		#    01: file?
+		#    02: weird entry - only a single 00 byte.  padding? Nope, it's a file name in EM7305 SPKG images
 		#    08: named variable
-		if ($flag == 2) {
-		    $name = join(' ', map { sprintf "%02x", $_ } unpack("C*", $name));
-		}
+#		if ($flag == 2) {
+#		    $name = join(' ', map { sprintf "%02x", $_ } unpack("C*", $name));
+#		}
 		printf ", <%02x> $name => ", $flag;
 	    } elsif ($d == 2) { # value
 		# observed pattern:
@@ -143,7 +166,10 @@ sub parse_nvup {
 		$data = $cwelen ? substr($data, -$cwelen) : '';
 	    } else { # nvitem
 		# the NVITEM data is everything
-		printf " NVITEM 0x%04x => ", $d;
+		printf " NVITEM 0x%04x", $d;
+		my $nvname = &nvitem2name($d);
+		print " ('$nvname')" if $nvname;
+		print " => ";
 	    }
 	    print join(':', map { sprintf "%02x", $_ } unpack("C*", $data));
 	    $nvup = substr($nvup, 6 + $tlen);
@@ -183,6 +209,8 @@ sub parse_cwe {
 
 	    # parse known formats
 	    if ($type eq 'NVUP') {
+		&parse_nvup($buf, $imgsz, "$pfx  ");
+	    } elsif ($type eq 'ARCH') {
 		&parse_nvup($buf, $imgsz, "$pfx  ");
 	    } else {
 		printf "${pfx}  $type: $imgsz bytes\n" if 1; # redundant info
