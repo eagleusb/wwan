@@ -8,16 +8,35 @@ use warnings;
 use Archive::Zip;
 use Getopt::Long;
 
-# fixed prod
 my $prod = "9X30";
+my $fname = "BJORN";
+my $imgver = "00.00.00.00";  # match any?
 
-# fixed version string - must this match the running image? YES: experiments says so
-my $imgver = "02.08.02.00";
-my $ver = "9999999_9904609_SWI${prod}C_${imgver}_00_Bjorn_001.001_000";
+my $ver = "INTERNAL_9901234_SWI${prod}C_${imgver}_00_${fname}_000.000_000";
 
 ## test with a legal value first! 
-##my $usbcomp = 0x0000050d; # (diag,nmea,modem,rmnet0) 
-my $usbcomp = 0x0000050f; # (diag,adb,nmea,modem,rmnet0,rmnet1)
+##my $usbcomp = 0x0000050d; # (diag,nmea,modem,rmnet0,rmnet1) 
+##my $usbcomp = 0x0000050f; # (diag,adb,nmea,modem,rmnet0,rmnet1)
+my $usbcomp = 0x0000100f; # (diag,adb,nmea,modem,mbim)
+
+# Yeeha!  after adding
+#
+# nemi:/home/bjorn# cat /root/.android/adb_usb.ini 
+# # ANDROID 3RD PARTY USB VENDOR ID LIST -- DO NOT EDIT.
+# # USE 'android update adb' TO GENERATE.
+# # 1 USB VENDOR ID PER LINE.
+# 0x1199
+#
+# we got liftoff:
+#
+# nemi:~# adb devices
+# List of devices attached 
+# LQ53740015020204        device
+#
+# nemi:~# adb shell
+# / # uname -a
+# Linux mdm9635-perf 3.10.0+ #1 PREEMPT Wed Jan 6 21:51:50 PST 2016 armv7l GNU/Linux
+
 
 #  supported values are:
 #
@@ -40,6 +59,31 @@ my $usbcomp = 0x0000050f; # (diag,adb,nmea,modem,rmnet0,rmnet1)
 #
 #  The default configuration is:
 #  at!usbcomp=1,1,10F'
+
+## more complete help text taken from memory dump:
+
+#AT!USBCOMP=<Config Index>,<Config Type>,<Interface bitmask>
+#  <Config Index>      - configuration index to which the composition applies, should be 1
+#  <Config Type>       - 1:Generic, 2:USBIF-MBIM, 3:RNDIS
+#                        config type 2/3 should only be used for specific Sierra PIDs: 68B1, 9068
+#                        customized VID/PID should use config type 1
+#  <Interface bitmask> - DIAG     - 0x00000001,
+#                        ADB      - 0x00000002,
+#                        NMEA     - 0x00000004,
+#                        MODEM    - 0x00000008,
+#                        RMNET0   - 0x00000100,
+#                        RMNET1   - 0x00000400,
+#                        RMNET2   - 0x00000800,
+#                        MBIM     - 0x00001000,
+#                        RNDIS    - 0x00004000,
+#                        AUDIO    - 0x00010000,
+#                        ECM      - 0x00080000,
+#                        UBIST    - 0x00200000
+#  e.g.
+#  10D  - diag, nmea, modem, rmnet0 interfaces enabled
+#  1009 - diag, modem, mbim interfaces enabled
+#  The default configuration is:
+#  at!usbcomp=1,1,10F
 
 #bjorn@nemi:~/privat/prog/git/wwan/scripts$ ./parsecwe.pl ~/docs/hardware/sierra/em7455/firmware/SWI9X30C_02.08.02.00/OEM/1102662_9905046_EM7455_02.05.07.00_00_Lenovo-Laptop_#001.003_000.nvu 
 #FLEHDR: FULL: val=1, code=3, hdrsz=400, imgsz=11976
@@ -71,7 +115,7 @@ sub crc32 {
 
 sub mkfilehdr {
     my $imgsz = shift;
-    return pack("CCnNNa[244]",1, 2, 0, 400, $imgsz, "FULL");  # the meaning of 'code' is uncertain.  OEM file has 3, others have 2.
+    return pack("CCnNNa[244]",1, 3, 0, 400, $imgsz, "FULL");  # the meaning of 'code' is uncertain.  OEM file has 3, others have 2.
 }
 
 sub mkcwehdr {
@@ -108,8 +152,47 @@ sub mknvup {
 
 my $image = &mknvup();
 my $cwe = &mkcwehdr('NVUP', $ver, 0x00000001, 0x50617273, $image);
-## funker ikke $cwe = &mkcwehdr('FILE', '/swir/nvdelta/NVUP_bjorn.020', 0x01000000, 0x00000001, $cwe);
-$cwe = &mkcwehdr('FILE', '/nvup/NVUP_BJORN.020', 0x01000000, 0x00000001, $cwe);
+$cwe = &mkcwehdr('FILE', "/nvup/NVUP_${fname}.020", 0x01000000, 0x00000001, $cwe);
 $cwe = &mkcwehdr('FILE', $ver, 0x00000000, 0x00000001, $cwe);
 $cwe = &mkcwehdr('SPKG', $ver, 0x00000000, 0x00000001, $cwe);
 print $cwe;
+
+
+
+
+__END__
+
+Interesting variables:
+
+
+
+          #7     45 bytes: b=3401, c=0001, <08> ATLOWPWD => 14:62:64:65:00:00:00:00:00:00:00:00:00:00:00:00
+          #8     36 bytes: b=3401, c=0001, <08> ANTITHEFT_MODE => 00
+          #9     30 bytes: b=3401, c=0001, <08> FCC_AUTH => 00
+          #10    36 bytes: b=3401, c=0001, <08> USB_VENDOR_ID => 3c:41
+          #11    42 bytes: b=3401, c=0001, <08> USB_APP_BOOT_PIDS => b6:81:b5:81
+          #12    98 bytes: b=3401, c=0001, <08> USB_PROD_NAME => 44:57:35:38:31:31:65:20:53:6e:61:70:64:72:61:67:6f:6e:e2:84:a2:20:58:37:20:4c:54:45:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+          #13    46 bytes: b=3401, c=0001, <08> FWID_GUID => 6e:db:47:5a:e0:b4:4a:42:97:50:1e:c6:4f:05:fd:13
+          #14    37 bytes: b=3401, c=0001, <08> USB_COMP => 01:00:00:00:0d:10:20:00
+          #15    42 bytes: b=3401, c=0001, <08> CUST_USBSERIALENABLE => 01
+          #16    37 bytes: b=3401, c=0001, <08> CUST_FASTENUMEN => 00
+          #17    36 bytes: b=3401, c=0001, <08> CUST_GPSENABLE => 01
+          #18    35 bytes: b=3401, c=0001, <08> CUST_GPSLPMEN => 00
+          #19    33 bytes: b=3401, c=0001, <08> CUST_GPSSEL => 01
+          #20    35 bytes: b=3401, c=0001, <08> GPS_AUTOSTART => 02
+          #21    41 bytes: b=3401, c=0001, <08> GPS_MTLR_NOTIF_RESP => 01
+          #22    36 bytes: b=3401, c=0001, <08> GNSS_ANT_POWER => 00
+          #23    33 bytes: b=3401, c=0001, <08> CUST_SIMLPM => 01
+          #24    31 bytes: b=3401, c=0001, <08> W_DISABLE => 00
+          #25    37 bytes: b=3401, c=0001, <08> CUST_WAKEHOSTEN => 00
+
+
+
+
+Wonder about the "ATLOWPWD".  It is the same value in all OEM files.
+Thinking about the well known "A710" password...  Doesn't that map nicely to 
+14:62:64:65?  if we just subtract the values from a known offset?
+
+A710 => 41:37:31:30
+
+The sum is 55:95:95:95.  Not quite it...  There is something else to this.
