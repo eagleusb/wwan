@@ -1527,6 +1527,17 @@ Command aliases and expected arguments (no encoding):
    gstatus - Sierra Wireless specific, system is forced to NAS
 
 
+
+
+Or for offline decoding only:
+
+   $0 [--[no]debug] offline <message>
+
+Example:
+
+   $0 offline 01:0f:00:00:00:00:00:01:22:00:04:00:01:01:00:02
+
+
 EOH
     ;
     &release_cids;
@@ -1585,8 +1596,16 @@ GetOptions(
 
 # the rest of the command line is left for the actual command to run
 
+# special handling of 'offline'
+if ($ARGV[0] eq 'offline') {
+    shift;
+    my $qmi_in = &decode_qmi(pack("C*", map { hex } split(/:/, join(':', @ARGV))));
+    &pretty_print_qmi($qmi_in);
+    exit;
+}
+
 # network device is required
-&usage unless $netdev;
+    &usage unless $netdev;
 
 # postprocess family
 $family =~ s/^inet//;
