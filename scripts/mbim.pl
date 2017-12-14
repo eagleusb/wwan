@@ -264,6 +264,20 @@ my %uuid = (
     UUID_MULTICARRIER  => '8b569648-628d-4653-9b9f-1025404424e1', # ref http://feishare.com/attachments/article/252/implementing-multimode-multicarrier-devices.pdf
     UUID_MSFWID        => 'e9f7dea2-feaf-4009-93ce-90a3694103b6', # http://msdn.microsoft.com/en-us/library/windows/hardware/jj248721.aspx
     UUID_MS_HOSTSHUTDOWN => '883b7c26-985f-43fa-9804-27d7fb80959c', # http://msdn.microsoft.com/en-us/library/windows/hardware/jj248720.aspx
+    UUID_BASIC_CONNECT_EXTENSIONS => '3d01dcc5-fef5-4d05-0d3a-bef7058e9aaf', # https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-base-stations-information-query-support
+    UUID_MS_UICC_LOW_LEVEL        => 'c2f6588e-f037-4bc9-8665-f4d44bd09367', # https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-low-level-uicc-access
+    UUID_MS_SAR_CONTROL           => '68223d04-9f6c-4e0f-822d-28441fb72340',    # https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-sar-platform-support
+
+    ## from Telit_xN930_MBIM_Command_Functional_Specification_r2.pdf
+    UUID_ATDS              => '5967bdcc-7fd2-49a2-9f5c-b2e70e527db3',
+    UUID_INTEL_FWUSVC      => '0ed374cb-f835-4474-bc11-3b3fd76f5641',
+    UUID_INTEL_DPTF        => 'fdc22af2-f441-4d46-af8d-259fcdde4635',
+    UUID_INTEL_SAR         => '10e40d69-375a-42ce-a297-906164f2754c',
+    UUID_INTEL_ACT         => 'ed19555d-a6ac-4327-8eb1-fc022e5e2388',
+    UUID_INTEL_TRCSVC      => '59a7f323-fe5a-4301-b185-b8ea9e6167b7',
+    UUID_INTEL_NRTC        => '2b6d8c5a-0ca9-418f-8aac-1a9dc8e32866',
+    UUID_INTEL_USB_PROFILE => 'fa142322-166b-4fd9-89f0-99be90ae8e3d',
+    UUID_INTEL_CIQ         => '6a2a8150-abca-4b11-a4e2-f2fc879f5481',
 
     );
 
@@ -333,8 +347,53 @@ my %cid = (
     'MBIM_CID_MSFWID_FIRMWAREID' => { 'service' => 'MSFWID', 'cid' => 1, },
 
     'MBIM_CID_MS HOSTSHUTDOWN' => { 'service' => 'MS_HOSTSHUTDOWN', 'cid' => 1, },
-    );
 
+    ## from https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-provisioned-context-operations
+    'MBIM_CID_MS_PROVISIONED_CONTEXT_V2' =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 1, },
+    'MBIM_CID_MS_NETWORK_BLACKLIST'      =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 2, },
+    'MBIM_CID_MS_LTE_ATTACH_CONFIG'      =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 3, },
+    'MBIM_CID_MS_LTE_ATTACH_STATUS'      =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 4, },
+    'MBIM_CID_MS_SYS_CAPS'               =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 5, },
+    'MBIM_CID_MS_DEVICE_CAPS_V2'         =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 6, },
+    'MBIM_CID_MS_DEVICE_SLOT_MAPPINGS'   =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 7, },
+    'MBIM_CID_MS_SLOT_INFO_STATUS'       =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 8, },
+
+    'MBIM_CID_MS_DEVICE_RESET'           =>  { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 10, },
+    
+    'MBIM_CID_PCO'                  => { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 41, }, # ?? number
+    'MBIM_CID_BASE_STATIONS_INFO'   => { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 42, }, # ?? number
+    'MBIM_CID_LOCATION_INFO_STATUS' => { 'service' => 'BASIC_CONNECT_EXTENSIONS', 'cid' => 43, }, # ?? number
+
+    ## from https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-low-level-uicc-access
+    'MBIM_CID_MS_UICC_ATR'                 =>  { 'service' => 'MS_UICC_LOW_LEVEL', 'cid' => 1, },
+    'MBIM_CID_MS_UICC_OPEN_CHANNEL'        =>  { 'service' => 'MS_UICC_LOW_LEVEL', 'cid' => 2, },
+    'MBIM_CID_MS_UICC_CLOSE_CHANNEL'       =>  { 'service' => 'MS_UICC_LOW_LEVEL', 'cid' => 3, },
+    'MBIM_CID_MS_UICC_APDU'                =>  { 'service' => 'MS_UICC_LOW_LEVEL', 'cid' => 4, },
+    'MBIM_CID_MS_UICC_TERMINAL_CAPABILITY' =>  { 'service' => 'MS_UICC_LOW_LEVEL', 'cid' => 5, },
+    'MBIM_CID_MS_UICC_RESET'               =>  { 'service' => 'MS_UICC_LOW_LEVEL', 'cid' => 6, },
+
+    ## from https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-sar-platform-support
+    'MBIM_CID_MS_SAR_CONFIG' =>  { 'service' => 'MS_SAR_CONTROL', 'cid' => 1, }, # ?? number
+    'MBIM_CID_MS_TRANSMISSION_STATUS' =>  { 'service' => 'MS_SAR_CONTROL', 'cid' => 2, }, # ?? number
+
+    ## from Telit_xN930_MBIM_Command_Functional_Specification_r2.pdf
+    'MBIM_CID_ATDS_SIGNAL'                 =>  { 'service' => 'ATDS', 'cid' => 1, },
+    'MBIM_CID_ATDS_LOCATION'               =>  { 'service' => 'ATDS', 'cid' => 2, },
+    'MBIM_CID_ATDS_OPERATORS'              =>  { 'service' => 'ATDS', 'cid' => 3, },
+    'MBIM_CID_ATDS_RAT'                    =>  { 'service' => 'ATDS', 'cid' => 4, },
+    'MBIM_CID_ATDS_REGISTER_STATE'         =>  { 'service' => 'ATDS', 'cid' => 9, },
+    'MBIM_CID_ATDS_RAT_DISPLAY'            =>  { 'service' => 'ATDS', 'cid' => 11, },
+    'MBIM_CID_INTC_SAR_CONFIG'             =>  { 'service' => 'INTEL_SAR',    'cid' => 1, },
+    'MBIM_CID_INTC_THERMAL_STATE'          =>  { 'service' => 'INTEL_DPTF',   'cid' => 0x02000100, },
+    'MBIM_CID_INTC_MODEM_REBOOT'           =>  { 'service' => 'INTEL_FWUSVC', 'cid' => 1, },
+    'MBIM_CID_INTC_ADPCLK_MODE'            =>  { 'service' => 'INTEL_ACT',    'cid' => 0x02000010, },
+    'MBIM_CID_INTC_TRACE'                  =>  { 'service' => 'INTEL_TRCSVC', 'cid' => 1, },
+    'MBIM_CID_INTC_TRACE_DATA'             =>  { 'service' => 'INTEL_TRCSVC', 'cid' => 2, },
+    'MBIM_CID_INTC_NRTAPP'                 =>  { 'service' => 'INTEL_NRTC',   'cid' => 1, },
+    'MBIM_CID_INTC_NRTCWS'                 =>  { 'service' => 'INTEL_NRTC',   'cid' => 2, },
+    'MBIM_CID_INTC_USBPROFILE'             =>  { 'service' => 'INTEL_USBPROFILE', 'cid' => 1, },
+    'MBIM_CID_INTC_CIQ'                    =>  { 'service' => 'INTEL_CIQ',    'cid' => 1, },
+    );
 
 sub cid_to_string {
     my ($service, $cid) = @_;
@@ -531,15 +590,55 @@ sub mk_cid_connect {
     return &mk_command_msg('BASIC_CONNECT', 12, 1, $data);
 }
 
+# from https://docs.microsoft.com/en-us/windows-hardware/drivers/network/mb-provisioned-context-operations
+# MBIM_MS_CONTEXT_ROAMING_CONTROL table:
+my %ms_roaming = (
+    0 => 'MbimMsContextRoamingControlHomeOnly', 	 	# Indicates whether the context is only allowed to be used in the home network or not.
+    1 => 'MbimMsContextRoamingControlPartnerOnly', 	 	# Indicates whether the context is only allowed to be used in partner roaming networks or not.
+    2 => 'MbimMsContextRoamingControlNonPartnerOnly', 	 	# Indicates whether the context is only allowed to be used in non-partner roaming networks or not.
+    3 => 'MbimMsContextRoamingControlHomeAndPartner', 	 	# Indicates whether the context is allowed to be used in home and partner roaming networks.
+    4 => 'MbimMsContextRoamingControlHomeAndNonPartner', 	# Indicates whether the context is allowed to be used in home and non-partner roaming networks.
+    5 => 'MbimMsContextRoamingControlPartnerAndNonPartner', 	# Indicates whether the context is allowed to be used in partner and non-partner roaming networks.
+    6 => 'MbimMsContextRoamingControlAllowAll',	 		# Indicates whether the context is allowed to be used in any roaming condition.
+    );
+
+# MBIM_MS_CONTEXT_MEDIA_TYPE
+my %ms_media = (
+    0 => 'MbimMsContextMediaTypeCellularOnly', 	 	# Indicates whether the context is only allowed to be used when registered over cellular.
+    1 => 'MbimMsContextMediaTypeWifiOnly', 	 	# Indicates whether the context is only allowed to be used when registered over iWLAN (Wi-Fi offload).
+    2 => 'MbimMsContextMediaTypeAll',			# Indicates whether the context is allowed to be used when registered either through Cellular or Wi-Fi.
+    );
+
+# MBIM_MS_CONTEXT_SOURCE
+my %ms_source = (
+    0 => 'MbimMsContextSourceAdmin', 	 	# The context was created by an Enterprise IT admin from the OS.
+    1 => 'MbimMsContextSourceUser', 	 	# The context was created by the user through OS settings.
+    2 => 'MbimMsContextSourceOperator',        	# The context was created by the operator through OMA-DM or other channels.
+    3 => 'MbimMsContextSourceModem', 	 	# The context was created by the IHV or OEM that was included with the modem firmware.
+    4 => 'MbimMsContextSourceDevice', 	 	# The context was created by the OS APN database.
+    );
+
 sub decode_mbim_context {
     my $info = shift;
-
+    my $ver = shift || 'v1';
+    
     my $id = unpack("V", $info);
     print "    ContextId:\t$id\n";
     my $type = uuid_to_string(substr($info, 4, 16));
     print "    ContextType:\t$type (", &type_to_context($type), ")\n"; 
-
-    my ($apnoff, $apnlen, $useroff, $userlen, $pwoff, $pwlen, $comp, $auth) = unpack("V8", substr($info, 20));
+    my $next = 20;
+    
+    if ($ver eq 'v2') {
+	my ($iptype, $enable, $roaming, $mediatype, $source) = unpack("V5", substr($info, $next));
+	print "    IPType:\t$iptype{$iptype} ($iptype)\n";
+	print "    Enable:\t", $enable ? 'true' : 'false', "\n";
+	print "    Roaming:\t$ms_roaming{$roaming} ($roaming)\n";
+	print "    MediaType:\t$ms_media{$mediatype} ($mediatype)\n";
+	print "    Source:\t$ms_source{$source} ($source)\n";
+	$next += 20;
+    }
+    
+    my ($apnoff, $apnlen, $useroff, $userlen, $pwoff, $pwlen, $comp, $auth) = unpack("V8", substr($info, $next));
     print "    AccessString:\t", $apnlen ? substr($info, $apnoff, $apnlen): '<none>', "\n";
     print "    UserName:\t", $userlen ? substr($info, $useroff, $userlen): '<none>', "\n";
     print "    Password:\t", $pwlen ? substr($info, $pwoff, $pwlen): '<none>', "\n";
@@ -888,23 +987,35 @@ sub ipv6_element {
     return &ipv6_address(substr($info, 4, 16)) . "/$pfxlen";
 }
 
+
+sub decode_device_caps {
+    my $info = shift;
+    my $ver = shift || 'v1';
+    
+    my ($type, $class, $voiceclass, $simclass, $dataclass, $smscaps, $ctrlcaps, $maxsessions, $custoff, $custlen, $idoff, $idlen, $fwoff, $fwlen, $hwoff, $hwlen) = unpack("V16", $info);
+    print "  DeviceType:\t", &value_to_class($type, \%devicetype), " ($type)\n";
+    printf "  CellularClass:\t0x%08x %s\n", $class, &value_to_class($class, \%cellclass);
+    printf "  VoiceClass:\t0x%08x %s\n", $voiceclass, &value_to_class($voiceclass, \%voiceclass);
+    printf "  SIMClass:\t0x%08x %s\n", $simclass, &value_to_class($simclass, \%simclass);
+    printf "  DataClass:\t0x%08x %s\n", $dataclass, &flags_to_class($dataclass, \%dataclass);
+    printf "  SMSCaps:\t0x%08x %s\n", $smscaps, &flags_to_class($smscaps, \%smscaps);
+    printf "  ControlCaps:\t0x%08x %s\n", $ctrlcaps, &flags_to_class($ctrlcaps, \%ctrlcaps);
+    print "  MaxSessions:\t$maxsessions\n";
+    print "  CustomDataClass:\t", &utf16_field($info, $custoff, $custlen), "\n";
+    print "  DeviceId:\t", &utf16_field($info, $idoff, $idlen), "\n";
+    print "  FirmwareInfo:\t", &utf16_field($info, $fwoff, $fwlen), "\n";
+    print "  HardwareInfo:\t", &utf16_field($info, $hwoff, $hwlen), "\n";
+    if ($ver eq 'v2') {
+	my $exec_idx = unpack("V", substr($info, 64, 4));
+	print "  ExecutorIndex:\t$exec_idx\n";
+    }
+}
+	
 sub decode_basic_connect {
     my ($cid, $info, $set) = @_;
 
     if ($cid == 1) { # MBIM_CID_DEVICE_CAPS
-	my ($type, $class, $voiceclass, $simclass, $dataclass, $smscaps, $ctrlcaps, $maxsessions, $custoff, $custlen, $idoff, $idlen, $fwoff, $fwlen, $hwoff, $hwlen) = unpack("V16", $info);
-	print "  DeviceType:\t", &value_to_class($type, \%devicetype), " ($type)\n";
-	printf "  CellularClass:\t0x%08x %s\n", $class, &value_to_class($class, \%cellclass);
-	printf "  VoiceClass:\t0x%08x %s\n", $voiceclass, &value_to_class($voiceclass, \%voiceclass);
-	printf "  SIMClass:\t0x%08x %s\n", $simclass, &value_to_class($simclass, \%simclass);
-	printf "  DataClass:\t0x%08x %s\n", $dataclass, &flags_to_class($dataclass, \%dataclass);
-	printf "  SMSCaps:\t0x%08x %s\n", $smscaps, &flags_to_class($smscaps, \%smscaps);
-	printf "  ControlCaps:\t0x%08x %s\n", $ctrlcaps, &flags_to_class($ctrlcaps, \%ctrlcaps);
-	print "  MaxSessions:\t$maxsessions\n";
-	print "  CustomDataClass:\t", &utf16_field($info, $custoff, $custlen), "\n";
-	print "  DeviceId:\t", &utf16_field($info, $idoff, $idlen), "\n";
-	print "  FirmwareInfo:\t", &utf16_field($info, $fwoff, $fwlen), "\n";
-	print "  HardwareInfo:\t", &utf16_field($info, $hwoff, $hwlen), "\n";
+	&decode_device_caps($info);
     } elsif ($cid == 2) { # MBIM_CID_SUBSCRIBER_READY_STATUS
 	my ($state, $idoff, $idlen, $iccidoff, $iccidlen, $flags, $ec ) = unpack("VVVVVVV", $info);
 	print "  ReadyState:\t$readystate{$state} ($state)\n";
@@ -1430,6 +1541,64 @@ sub decode_msfwid {
     }
 }
 
+# MBIM_MS_UICCSLOT_STATE
+my %ms_uicc_state = (
+    0 => 'UICCSlotStateUnknown',       	# The modem is still in the process of initializing so the SIM slot state is not deterministic.
+    1 => 'UICCSlotStateOffEmpty',      	# The UICC slot is powered off and no card is present. An implementation that is unable to determine the presence of a card in a slot that is powered off reports its state as UICCSlotStateOff.
+    2 => 'UICCSlotStateOff', 	 	# The UICC slot is powered off.
+    3 => 'UICCSlotStateEmpty', 	 	# The UICC slot is empty (there is no card in it).
+    4 => 'UICCSlotStateNotReady',      	# The UICC slot is occupied and powered on but the card within it is not yet ready.
+    5 => 'UICCSlotStateActive',        	# The UICC slot is occupied and the card within it is ready.
+    6 => 'UICCSlotStateError', 	 	# The UICC slot is occupied and powered on but the card is in an error state and cannot be used until it is next reset.
+    7 => 'UICCSlotStateActiveEsim',    	# The card in the slot is an eSIM with an active profile and is ready to accept commands.
+    8 => 'UICCSlotStateActiveEsimNoProfiles', 	# The card in the slot is an eSIM with no profiles (or no active profiles) and is ready to accept commands.
+    );
+
+sub decode_basic_connect_extentions {
+    my ($cid, $info) = @_;
+
+    if ($cid == 1) { # MBIM_CID_MS_PROVISIONED_CONTEXT_V2
+	my $ec = unpack("V", $info);
+	print "  ElementCount (EC): $ec\n  MsProvisionedContextV2RefList:\n";
+	for (my $i = 0; $i < $ec; $i++) {
+	    print "  Context #$i:\n";
+	    my ($off, $len) = unpack("VV", substr($info, 4 + 8 * $i, 8));
+	    &decode_mbim_context(substr($info, $off, $len), 'v2');
+	}
+    } elsif ( $cid == 2) {  # MBIM_CID_MS_NETWORK_BLACKLIST
+	print join(' ', map { sprintf "%02x", $_ } unpack("C*", $info)), "\n";
+    } elsif ($cid == 5) { # MBIM_CID_MS_SYS_CAPS
+	my ($n_mbb, $n_slots, $concur, $modemid) =  unpack("V3Q<", $info);
+	print "  NumberOfExecutors:\t$n_mbb\n";
+	print "  NumberOfSlots:\t$n_slots\n";
+	print "  Concurrency:\t$concur\n";
+	printf "  ModemId:\t0x%08x\n", $modemid;
+    } elsif ($cid == 6) { # MBIM_CID_MS_DEVICE_CAPS_V2
+	&decode_device_caps($info, 'v2');
+    } elsif ($cid == 7) { # MBIM_CID_MS_DEVICE_SLOT_MAPPINGS
+	my $mc = unpack("V", $info);
+	print "  MapCount (MC): $mc\n  SlotMapList:\n";
+	for (my $i = 0; $i < $mc; $i++) {
+	    my ($off, $len) = unpack("VV", substr($info, 4 + 8 * $i, 8));
+	    my $idx = unpack("V", substr($info, $off, $len));
+	    print "  Slot $i => Index $idx\n";
+	}
+    } elsif ($cid == 8) { # MBIM_CID_MS_SLOT_INFO_STATUS
+	my ($idx, $state) = unpack("V2", $info);
+	print "  SlotIndex:\t$idx\n";
+	print "  State:\t$ms_uicc_state{$state} ($state)\n";
+    } elsif ( $cid == 42) { # MBIM_CID_LOCATION_INFO_STATUS
+	my ($lac, $tac, $cellid) = unpack("V3", $info);
+	printf "  LocationAreaCode:\t0x%08x\n", $lac;
+	printf "  TrackingAreaCode:\t0x%08x\n", $tac;
+	print "  CellId:\t$cellid\n";
+    } else {
+	print "BASIC_CONNECT_EXTENSIONS CID $cid decoding is not yet supported\n";
+	print join(' ', map { sprintf "%02x", $_ } unpack("C*", $info)), "\n";
+    }
+}
+
+
 my %decoder = (
     "BASIC_CONNECT" => \&decode_basic_connect,
     "USSD" => \&decode_ussd,
@@ -1443,6 +1612,7 @@ my %decoder = (
     "EXT_QMUX" => \&decode_ext_qmux,
 
     "MSFWID" => \&decode_msfwid,
+    "BASIC_CONNECT_EXTENSIONS" => \&decode_basic_connect_extentions,
     );
 
 my %frag;
